@@ -130,7 +130,7 @@ with prompt_placeholder:
     )
     cols[1].form_submit_button(
         "Submit", 
-        type="primary", 
+        type="secondary", 
         on_click=on_click_callback
     )
 
