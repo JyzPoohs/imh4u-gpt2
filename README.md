@@ -7,3 +7,4 @@ Three datasets were used to fine-tune the model. Arround 6.5k datasets after pre
 2. Amod/mental_health_counseling_conversations
 3. heliosbrahma/mental_health_chatbot_dataset
 
+![gpt2-initial](https://github.com/user-attachments/assets/274334bc-654d-49e1-ab6d-cbd823fc7384)
