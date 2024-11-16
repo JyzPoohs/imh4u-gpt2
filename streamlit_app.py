@@ -8,8 +8,6 @@ from langchain.prompts import PromptTemplate
 import streamlit.components.v1 as components
 from PIL import Image
 import base64
-from PIL import Image
-import io
 
 # Set page configuration
 st.set_page_config(page_title="IMH4U Chatbot", page_icon="💫")
@@ -26,7 +24,9 @@ def load_css():
 # Initialize session state
 def initialize_session_state():
     if "history" not in st.session_state:
-        st.session_state.history = []
+        st.session_state.history = [
+            {"origin": "ai", "message": "Hi, I am IMH4U, what can I do for you today?"}
+        ]
     if "token_count" not in st.session_state:
         st.session_state.token_count = 0
     if "conversation" not in st.session_state:
@@ -34,13 +34,17 @@ def initialize_session_state():
         generator = pipeline(
             "text-generation",
             model=model_name,
-            max_new_tokens=50,  # Limit the response to 50 tokens
+            max_new_tokens=40,  # Limit the response to 50 tokens
             temperature=0.7,    # Add temperature to control randomness
             top_p=0.95          # Add top_p for nucleus sampling
         )
         llm = HuggingFacePipeline(pipeline=generator)
         memory = ConversationBufferWindowMemory(k=5)
         st.session_state.conversation = ConversationChain(llm=llm, memory=memory)
+
+# Function to clean the AI response by removing the prompt template
+def clean_response(response, prompt):
+    return response.replace(prompt, "").strip()
 
 # Prompt template for consistent responses
 def generate_prompt(user_input):
@@ -66,6 +70,9 @@ def on_click_callback():
         
         # Extract the response from the result (it's a list of results)
         response_text = llm_response.generations[0][0].text.strip()
+        
+        # Clean the AI response to exclude the prompt template
+        response_text = clean_response(response_text, formatted_prompt)
     except ValueError as e:
         st.error(f"Error: {e}. Retrying with simplified input.")
         try:
@@ -80,6 +87,17 @@ def on_click_callback():
     st.session_state.history.append({"origin": "ai", "message": response_text})
     st.session_state.token_count += len(human_prompt.split()) + len(response_text.split())
 
+# Callback function to clear the chat history
+def clear_chat():
+    st.session_state.history = [
+        {"origin": "ai", "message": "Hi, I am IMH4U, what can I do for you today?"}
+    ]
+    st.session_state.token_count = 0
+
+# Callback function to clear the input text
+def clear_input_text():
+    st.session_state.human_prompt = ""
+
 # Load custom CSS and initialize session state
 load_css()
 initialize_session_state()
@@ -91,9 +109,44 @@ st.write("This is IMH4U (I Am Here For You), a mental health chatbot fine-tuned 
 # Chat interface
 chat_placeholder = st.container()
 prompt_placeholder = st.form("chat-form")
-credit_card_placeholder = st.empty()
 
-import base64
+# Clear Chat function
+def clear_chat():
+    # Reset the chat history and token count in session state
+    st.session_state.history = [
+        {"origin": "ai", "message": "Hi, I am IMH4U, what can I do for you today?"}
+    ]
+    st.session_state.token_count = 0
+
+# Clear Input Text function
+def clear_input_text():
+    # Clear the text input in session state
+    st.session_state.human_prompt = ""
+
+# Create two columns for buttons
+col1, col2 = st.columns(2)
+
+with col1:
+    # Streamlit button for Clear Text
+    st.button(
+        "Clear Text",
+        icon="❌", 
+        use_container_width=True,
+        on_click=clear_input_text,
+        help="Click to clear the input text",
+    )
+
+with col2:
+    # Streamlit button for Clear Chat
+    st.button(
+        "Clear Chat",
+        icon="🗑️", 
+        use_container_width=True,
+        on_click=clear_chat,
+        help="Click to clear the chat history",
+    )
+
+credit_card_placeholder = st.empty()
 
 with chat_placeholder:
     for chat in st.session_state.history:
@@ -101,7 +154,7 @@ with chat_placeholder:
         bubble_class = "human-bubble" if chat["origin"] == "human" else "ai-bubble"
         
         # Dynamically set the icon path based on the message origin
-        icon_path = "img/user.jpg" if chat["origin"] == "human" else "img/bot.png"  # Adjust paths accordingly
+        icon_path = "img/user.jpg" if chat["origin"] == "human" else "img/bot.png" 
         
         # Open the appropriate image and encode it to base64
         with open(icon_path, "rb") as image_file:
@@ -120,7 +173,6 @@ with chat_placeholder:
 
 # Input form for user messages
 with prompt_placeholder:
-    st.markdown("**Chat**")
     cols = st.columns((6, 1))
     cols[0].text_input(
         "Chat",
@@ -130,7 +182,7 @@ with prompt_placeholder:
     )
     cols[1].form_submit_button(
         "Submit", 
-        type="secondary", 
+        type="primary", 
         on_click=on_click_callback
     )
 

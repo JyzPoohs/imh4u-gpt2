@@ -1,6 +1,6 @@
 .chat-row {
     display: flex;
-    margin: 8px;
+    margin: 7px;
     width: 100%;
 }
 
@@ -30,3 +30,4 @@
 .chat-icon {
     border-radius: 5px;
 }
+
