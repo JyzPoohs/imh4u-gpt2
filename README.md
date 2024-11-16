@@ -1,19 +1,9 @@
-# 🎈 Blank app template
+# 💬 IMH4U Chatbot (GPT2 version)
 
-A simple Streamlit app template for you to modify!
+IMH4U (I Am Here For You) is a mental health chatbot that is fine-tuned using GPT-2 with mental health dataset. 
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+Three datasets were used to fine-tune the model. Arround 6.5k datasets after preprocessing and cleanning (80% for training and 20% for testing). The datasets are available on Hugging Face:
+1. nbertagnolli/counsel-chat"
+2. Amod/mental_health_counseling_conversations
+3. heliosbrahma/mental_health_chatbot_dataset"
 
-### How to run it on your own machine
-
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
