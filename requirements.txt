@@ -1,1 +1,7 @@
 streamlit
+langchain
+streamlit-chat
+transformers
+langchain-community
+torch
+pillow
