@@ -1,12 +1,9 @@
 import streamlit as st
-from streamlit_chat import message
 from transformers import pipeline
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.llms import HuggingFacePipeline
-from langchain.prompts import PromptTemplate
 import streamlit.components.v1 as components
-from PIL import Image
 import base64
 
 # Set page configuration
@@ -34,12 +31,19 @@ def initialize_session_state():
         generator = pipeline(
             "text-generation",
             model=model_name,
-            max_new_tokens=40,  # Limit the response to 50 tokens
-            temperature=0.7,    # Add temperature to control randomness
-            top_p=0.95          # Add top_p for nucleus sampling
+            max_new_tokens=30,
+            do_sample=True,
+            num_beams=4,
+            temperature=0.7,
+            top_p=0.7,
+            repetition_penalty=2.0,
+            no_repeat_ngram_size=3
         )
+
         llm = HuggingFacePipeline(pipeline=generator)
-        memory = ConversationBufferWindowMemory(k=5)
+        
+        # Update the memory buffer to store last 3 conversations
+        memory = ConversationBufferWindowMemory(k=3)
         st.session_state.conversation = ConversationChain(llm=llm, memory=memory)
 
 # Function to clean the AI response by removing the prompt template
@@ -48,7 +52,7 @@ def clean_response(response, prompt):
 
 # Prompt template for consistent responses
 def generate_prompt(user_input):
-    template = "Provide empathetic and supportive responses. Human: {user_input}"
+    template = "Provide short, empathetic and supportive responses. Human: {user_input}"
     prompt = template.format(user_input=user_input)
     if len(prompt.split()) > 50:  # Adjust threshold as needed
         st.warning("Generated prompt is too long.")
@@ -104,7 +108,7 @@ initialize_session_state()
 
 # UI for the chatbot
 st.title("IMH4U Chatbot 💫")
-st.write("This is IMH4U (I Am Here For You), a mental health chatbot fine-tuned using Llama-2.")
+st.write("This is IMH4U (I Am Here For You), a mental health chatbot fine-tuned using GPT-2.")
 
 # Chat interface
 chat_placeholder = st.container()
@@ -146,8 +150,7 @@ with col2:
         help="Click to clear the chat history",
     )
 
-credit_card_placeholder = st.empty()
-
+# Display the chat history
 with chat_placeholder:
     for chat in st.session_state.history:
         alignment = "row-reverse" if chat["origin"] == "human" else ""
@@ -187,10 +190,8 @@ with prompt_placeholder:
     )
 
 # Display token usage and conversation memory
-credit_card_placeholder.caption(f"""
+st.caption(f"""
 Used {st.session_state.token_count} tokens \n
-Debug Langchain conversation: 
-{st.session_state.conversation.memory.buffer}
 """)
 
 # Add custom JavaScript for "Enter" key functionality
