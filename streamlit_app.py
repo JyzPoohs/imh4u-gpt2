@@ -5,6 +5,22 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.llms import HuggingFacePipeline
 import streamlit.components.v1 as components
 import base64
+import random
+
+instructions = """
+# How to Use IMH4U Chatbot
+
+IMH4U is designed to provide short, empathetic, and supportive responses.  To get the best experience:
+
+* **Be clear and concise:**  The chatbot responds better to focused prompts.
+* **Use positive language:** This will help maintain a positive conversational tone.
+* **Be patient:** Response generation takes some time and depends on network connection; please wait for the response.
+* **Clear Chat:** Clears the current conversation.
+* **Clear Text:** Clears the current text input box.
+* **Change Theme:** Change theme in the Settings.
+
+Please note: IMH4U is not a substitute for professional mental health advice. If you are experiencing a mental health crisis, please contact a crisis hotline or mental health professional immediately.
+"""
 
 # Set page configuration
 st.set_page_config(page_title="IMH4U Chatbot", page_icon="💫")
@@ -33,9 +49,9 @@ def initialize_session_state():
             model=model_name,
             max_new_tokens=30,
             do_sample=True,
-            num_beams=4,
+            num_beams=5,
             temperature=0.7,
-            top_p=0.7,
+            top_p=0.92,
             repetition_penalty=2.0,
             no_repeat_ngram_size=3
         )
@@ -58,6 +74,15 @@ def generate_prompt(user_input):
         st.warning("Generated prompt is too long.")
     return prompt
 
+# Predefined greeting responses
+greeting_responses = [
+    "Hello! How can I assist you today?",
+    "Hi there! What would you like to talk about?",
+    "Greetings! How can I help you?",
+    "Hey! I'm here for you. What's on your mind?",
+    "Hello! How can I support you today?"
+]
+
 # Define the callback for handling user input
 def on_click_callback():
     human_prompt = st.session_state.human_prompt.strip()
@@ -65,31 +90,38 @@ def on_click_callback():
         st.warning("Please enter a message.")
         return
 
-    try:
-        # Generate the formatted prompt
-        formatted_prompt = generate_prompt(human_prompt)
-        
-        # Wrap the prompt in a list as LangChain expects a list of prompts
-        llm_response = st.session_state.conversation.llm.generate([formatted_prompt])
-        
-        # Extract the response from the result (it's a list of results)
-        response_text = llm_response.generations[0][0].text.strip()
-        
-        # Clean the AI response to exclude the prompt template
-        response_text = clean_response(response_text, formatted_prompt)
-    except ValueError as e:
-        st.error(f"Error: {e}. Retrying with simplified input.")
+    # Check for greeting words in the user's input
+    if any(greeting in human_prompt.lower() for greeting in ["hi", "hello", "hey", "greetings"]):
+        response_text = random.choice(greeting_responses)
+    else:
         try:
-            llm_response = st.session_state.conversation.llm.generate([human_prompt])
+            # Generate the formatted prompt
+            formatted_prompt = generate_prompt(human_prompt)
+            
+            # Wrap the prompt in a list as LangChain expects a list of prompts
+            llm_response = st.session_state.conversation.llm.generate([formatted_prompt])
+            
+            # Extract the response from the result (it's a list of results)
             response_text = llm_response.generations[0][0].text.strip()
-        except Exception as retry_error:
-            st.error(f"Retry failed: {retry_error}")
-            return
+            
+            # Clean the AI response to exclude the prompt template
+            response_text = clean_response(response_text, formatted_prompt)
+        except ValueError as e:
+            st.error(f"Error: {e}. Retrying with simplified input.")
+            try:
+                llm_response = st.session_state.conversation.llm.generate([human_prompt])
+                response_text = llm_response.generations[0][0].text.strip()
+            except Exception as retry_error:
+                st.error(f"Retry failed: {retry_error}")
+                return
 
     # Update the chat history and token count
     st.session_state.history.append({"origin": "human", "message": human_prompt})
     st.session_state.history.append({"origin": "ai", "message": response_text})
     st.session_state.token_count += len(human_prompt.split()) + len(response_text.split())
+
+    # Clear the input text automatically after submission
+    st.session_state.human_prompt = "" 
 
 # Callback function to clear the chat history
 def clear_chat():
@@ -109,6 +141,9 @@ initialize_session_state()
 # UI for the chatbot
 st.title("IMH4U Chatbot 💫")
 st.write("This is IMH4U (I Am Here For You), a mental health chatbot fine-tuned using GPT-2.")
+
+with st.sidebar:
+    st.markdown(instructions, unsafe_allow_html=False)
 
 # Chat interface
 chat_placeholder = st.container()
@@ -179,7 +214,6 @@ with prompt_placeholder:
     cols = st.columns((6, 1))
     cols[0].text_input(
         "Chat",
-        value="",
         label_visibility="collapsed",
         key="human_prompt",
     )
